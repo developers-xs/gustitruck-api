@@ -22,7 +22,16 @@ CREATE TABLE clientes(
 );
 
 
+CREATE TABLE usuarios
+(
+    usuario VARCHAR(30) PRIMARY key,
+    nombre NVARCHAR(30),
+    primer_apellido NVARCHAR(30),
+    segundo_apellido NVARCHAR(30),
+    contrasena NVARCHAR(200)
+);
 
+insert into usuarios (usuario, nombre, primer_apellido, segundo_apellido, contrasena) values('abenavides', 'Antonio', 'Benavides', 'Hernandez', 'ogaitnas');
 
 CREATE TABLE pedidos(
     usuario VARCHAR(30) NOT NULL, 
