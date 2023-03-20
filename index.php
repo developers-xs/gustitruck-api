@@ -15,7 +15,7 @@ Flight::register('db', 'PDO', array('mysql:host=localhost;dbname=gustitruck','ro
 
 Flight::route('GET /inventario/@user', function ($user) {
 
-        $sentence =Flight::db()->prepare("SELECT * FROM `inventario` WHERE `usuario` = '{$user}'");
+        $sentence =Flight::db()->prepare("SELECT * FROM `inventario` WHERE `usuario` = '{$user}' and cantidad > 0");
         $sentence->execute();
         $data=$sentence->fetchAll();
         Flight::json($data);
@@ -25,7 +25,9 @@ Flight::route('GET /inventario/@user', function ($user) {
 
 Flight::route('GET /inventario/@user/@producto', function ($user, $producto) {
 
-    $sentence =Flight::db()->prepare("SELECT * FROM `inventario` WHERE `usuario` = '{$user}' and `producto` like '%{$producto}%' or `descripcion` like '%{$producto}%' or `ean13` like '%{$producto}%' ");
+    
+
+    $sentence =Flight::db()->prepare("SELECT * FROM `inventario` WHERE (usuario = '{$user}' and `producto` like '%{$producto}%' and cantidad > 0) or (usuario = '{$user}' and `descripcion` like '%{$producto}%' and cantidad > 0) or (usuario = '{$user}' and `ean13` like '%{$producto}%' and cantidad > 0)");
     $sentence->execute();
     $data=$sentence->fetchAll();
     Flight::json($data);
