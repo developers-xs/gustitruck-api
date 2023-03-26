@@ -59,24 +59,26 @@ Flight::route('POST /pedidos', function () {
     $tipo = (Flight::request()->data->tipo);
     $fechaEntrega = (Flight::request()->data->fechaEntrega);
     $formaPago = (Flight::request()->data->formaPago);
+    $arq_id = (Flight::request()->data->arq_id);
     $cliente = (Flight::request()->data->cliente);
     $cliente_nombre = (Flight::request()->data->cliente_nombre);
     $anotaciones = (Flight::request()->data->anotaciones);
     $lineas = (Flight::request()->data->lineas);
     $facturado = (Flight::request()->data->facturado);
 
-    $sql= 'INSERT INTO pedidos (usuario, tipo, fecha_entrega, forma_pago, cliente, cliente_nombre, anotaciones, lineas, facturado) VALUES(?,?,?,?,?,?,?,?,?)';
+    $sql= 'INSERT INTO pedidos (usuario, tipo, arq_id, fecha_entrega, forma_pago, cliente, cliente_nombre, anotaciones, lineas, facturado) VALUES(?,?,?,?,?,?,?,?,?,?)';
     $sentence =Flight::db()->prepare($sql);
     
     $sentence->bindParam(1,$usuario);
     $sentence->bindParam(2,$tipo);
-    $sentence->bindParam(3,$fechaEntrega);
-    $sentence->bindParam(4,$formaPago);
-    $sentence->bindParam(5,$cliente);
-    $sentence->bindParam(6,$cliente_nombre);
-    $sentence->bindParam(7,$anotaciones);
-    $sentence->bindParam(8,$lineas);
-    $sentence->bindParam(9,$facturado);
+    $sentence->bindParam(3,$arq_id);
+    $sentence->bindParam(4,$fechaEntrega);
+    $sentence->bindParam(5,$formaPago);
+    $sentence->bindParam(6,$cliente);
+    $sentence->bindParam(7,$cliente_nombre);
+    $sentence->bindParam(8,$anotaciones);
+    $sentence->bindParam(9,$lineas);
+    $sentence->bindParam(10,$facturado);
     
     $sentence->execute();
 
@@ -113,24 +115,23 @@ Flight::route('POST /pedidodetalle', function () {
 });
 
 
-Flight::route('GET /pedidos', function () {
+Flight::route('GET /pedidos/@usuario/@arq_id', function ($usuario, $arq_id) {
 
-    $sentence =Flight::db()->prepare("SELECT * FROM `pedidos`");
+    $sentence =Flight::db()->prepare("SELECT * FROM `pedidos` WHERE usuario='{$usuario}' and arq_id='{$arq_id}' order by 'pedido' desc");
     $sentence->execute();
     $data=$sentence->fetchAll();
     Flight::json($data);
 
 });
 
-Flight::route('GET /pedidodetalle', function () {
+Flight::route('GET /pedidodetalle/@pedido', function ($pedido) {
 
-    $sentence =Flight::db()->prepare("SELECT * FROM `detallepedidos`");
+    $sentence =Flight::db()->prepare("SELECT * FROM `detallepedidos` WHERE pedido='{$pedido}'");
     $sentence->execute();
     $data=$sentence->fetchAll();
     Flight::json($data);
 
 });
-
 
 
 Flight::route('POST /login', function () {
@@ -138,7 +139,7 @@ Flight::route('POST /login', function () {
     $usuario = (Flight::request()->data->usuario);
     $contrasena = (Flight::request()->data->contrasena);
 
-    $sql= "SELECT * FROM usuarios where usuario = '{$usuario}' and contrasena = '{$contrasena}'";
+    $sql= "SELECT * FROM usuarios where usuario = '{$usuario}' and BINARY contrasena = '{$contrasena}'";
     $sentence = Flight::db()->prepare($sql);
     
     $sentence->execute();
@@ -147,6 +148,84 @@ Flight::route('POST /login', function () {
 
 });
 
+
+Flight::route('POST /abrirContenedor', function () {
+
+    $usuario = (Flight::request()->data->usuario);
+    $timestampId = (Flight::request()->data->timestampId);
+
+    $sql= "INSERT INTO arqueos(usuario, timestampId) values('{$usuario}', '{$timestampId}')";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+    Flight::json($sentence);
+
+});
+
+Flight::route('GET /contenedorAprobado/@usuario', function ($usuario) {
+
+    $sql= "SELECT * FROM arqueos where `usuario` = '{$usuario}' and `arqueo_aprobado`= false";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
+
+
+
+Flight::route('POST /cerrarContenedor', function () {
+
+    
+
+    $arq_id = (Flight::request()->data->arq_id);
+
+    $sql= "UPDATE `arqueos` set `fecha_cierre` = CURRENT_TIMESTAMP where `arq_id` = '{$arq_id}'";
+    
+    $sentence =Flight::db()->prepare($sql);
+
+    $sentence->execute();
+
+    Flight::jsonp($sql);
+
+
+});
+
+
+Flight::route('GET /contenedores', function () {
+
+    $sql= "SELECT * FROM arqueos";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
+
+Flight::route('GET /detalleContenedor/@arq_id', function ($arq_id) {
+
+    $sql= "SELECT distinct a.fecha_apertura, a.fecha_cierre, p.usuario, p.arq_id, d.pedido, sum(d.cantidad) as cantidad, sum(d.total) as total FROM `pedidos` as p INNER JOIN `detallepedidos` as d on p.pedido = d.pedido INNER JOIN `arqueos` as a on p.arq_id = a.arq_id WHERE p.`arq_id` = {$arq_id} group by a.fecha_apertura, a.fecha_cierre, p.usuario, p.arq_id, d.pedido;";
+    $sentence = Flight::db()->prepare($sql);
+
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
+
+
+Flight::route('GET /contenedorAbierto/@usuario', function ($usuario) {
+
+    $sql= "SELECT * FROM arqueos where `fecha_cierre` is null and `usuario`='{$usuario}'";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
 
 
 
@@ -230,7 +309,13 @@ Flight::route('GET /email/@pedido', function ($pedido) {
                 "Message could not be sent. Mailer Error: {$mail->ErrorInfo}"
             );
         }
-
-
 });
+
+Flight::before('json', function () {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET,PUT,POST,DELETE');
+    header('Access-Control-Allow-Headers: Content-Type');
+});
+
+
 Flight::start();

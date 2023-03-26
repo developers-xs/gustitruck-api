@@ -1,3 +1,4 @@
+drop database gustitruck;
 create database gustitruck;
 
 use gustitruck;
@@ -36,6 +37,7 @@ insert into usuarios (usuario, nombre, primer_apellido, segundo_apellido, contra
 CREATE TABLE pedidos(
     usuario VARCHAR(30) NOT NULL, 
     pedido int not null primary key AUTO_INCREMENT,
+    arq_id int not null,
     tipo NVARCHAR(20) not NULL, 
     fecha_entrega DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_creacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -44,7 +46,7 @@ CREATE TABLE pedidos(
     cliente_nombre VARCHAR(50) NOT NULL,
     anotaciones NVARCHAR(200),
     lineas int,
-    facturado NVARCHAR(10)
+    facturado BOOLEAN DEFAULT FALSE
 );
 
 
@@ -57,8 +59,14 @@ CREATE TABLE detallepedidos(
     total FLOAT NOT NULL
 );
 
-
-
+create table arqueos(
+    arq_id int not null primary key AUTO_INCREMENT,
+    timestampId VARCHAR(30)not null,
+    usuario varchar(30) not null,
+    fecha_apertura DATETIME not null DEFAULT CURRENT_TIMESTAMP,
+    fecha_cierre DATETIME,
+    arqueo_aprobado BOOLEAN DEFAULT FALSE
+);
 
 
 -- Llenar tabla de cliente
