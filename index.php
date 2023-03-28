@@ -10,6 +10,55 @@ require 'flight/Flight.php';
 require 'mailTemplate.php';
 
 
+// CORS
+
+// preset option for allowed origins for our API server
+$allowed_origins = ['http://localhost',];
+$request_origin = isset( $_SERVER['HTTP_ORIGIN'] )
+  ? $_SERVER['HTTP_ORIGIN']
+  : null;
+// if there is no HTTP_ORIGIN, then bail
+if ( ! $request_origin ) {
+  return;
+}
+
+// a fallback value for allowed_origin we will send to the response header
+$allowed_origin = 'http://localhost';
+
+// now determine if request is coming from allowed ones
+if ( in_array( $request_origin, $allowed_origins ) ) {
+  $allowed_origin = $request_origin;
+}
+
+// print needed allowed origins
+header( "Access-Control-Allow-Origin: {$allowed_origin}" );
+header( 'Access-Control-Allow-Credentials: true' );
+header( 'Access-Control-Allow-Methods: GET, POST, OPTIONS' );
+
+// chrome and some other browser sends a preflight check with OPTIONS
+// if that is found, then we need to send response that it's okay
+// @link https://stackoverflow.com/a/17125550/2754557
+if (
+  isset( $_SERVER['REQUEST_METHOD'] )
+  && $_SERVER['REQUEST_METHOD'] === 'OPTIONS'
+) {
+  // need preflight here
+  header( 'Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept' );
+  // add cache control for preflight cache
+  // @link https://httptoolkit.tech/blog/cache-your-cors/
+  header( 'Access-Control-Max-Age: 86400' );
+  header( 'Cache-Control: public, max-age=86400' );
+  header( 'Vary: origin' );
+  // just exit and CORS request will be okay
+  // NOTE: We are exiting only when the OPTIONS preflight request is made
+  // because the pre-flight only checks for response header and HTTP status code.
+  exit( 0 );
+}
+
+// END CORS
+
+
+
 Flight::register('db', 'PDO', array('mysql:host=localhost;dbname=gustitruck','root',''));
 // Flight::register('db', 'PDO', array('mysql:host=192.95.39.223;dbname=cargaint_gustitruck','cargaint_root','HHbt37Y37@#987'));
 
@@ -124,6 +173,16 @@ Flight::route('GET /pedidos/@usuario/@arq_id', function ($usuario, $arq_id) {
 
 });
 
+
+Flight::route('GET /pedidos/@facturado', function ($facturado) {
+
+    $sentence =Flight::db()->prepare("SELECT * FROM `pedidos` WHERE facturado='{$facturado}' order by 'fecha_creacion' desc");
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
+
 Flight::route('GET /pedidodetalle/@pedido', function ($pedido) {
 
     $sentence =Flight::db()->prepare("SELECT * FROM `detallepedidos` WHERE pedido='{$pedido}'");
@@ -204,9 +263,31 @@ Flight::route('GET /contenedores', function () {
 
 });
 
+Flight::route('GET /contenedores/@arq_state', function ($arq_state) {
+
+    $sql= "SELECT * FROM arqueos where `arqueo_aprobado`={$arq_state}";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
+
 Flight::route('GET /detalleContenedor/@arq_id', function ($arq_id) {
 
     $sql= "SELECT distinct a.fecha_apertura, a.fecha_cierre, p.usuario, p.arq_id, d.pedido, sum(d.cantidad) as cantidad, sum(d.total) as total FROM `pedidos` as p INNER JOIN `detallepedidos` as d on p.pedido = d.pedido INNER JOIN `arqueos` as a on p.arq_id = a.arq_id WHERE p.`arq_id` = {$arq_id} group by a.fecha_apertura, a.fecha_cierre, p.usuario, p.arq_id, d.pedido;";
+    $sentence = Flight::db()->prepare($sql);
+
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
+
+Flight::route('GET /contenedorInfo/@arq_id', function ($arq_id) {
+
+    $sql= "SELECT * FROM `arqueos` WHERE `arq_id` = '{$arq_id}'";
     $sentence = Flight::db()->prepare($sql);
 
     $sentence->execute();
@@ -309,12 +390,6 @@ Flight::route('GET /email/@pedido', function ($pedido) {
                 "Message could not be sent. Mailer Error: {$mail->ErrorInfo}"
             );
         }
-});
-
-Flight::before('json', function () {
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: GET,PUT,POST,DELETE');
-    header('Access-Control-Allow-Headers: Content-Type');
 });
 
 
