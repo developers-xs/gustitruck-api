@@ -6,58 +6,64 @@ use PHPMailer\PHPMailer\Exception;
 require 'PHPMailer/src/Exception.php';
 require 'PHPMailer/src/PHPMailer.php';
 require 'PHPMailer/src/SMTP.php';
-require 'flight/Flight.php';
 require 'mailTemplate.php';
 
+require 'flight/Flight.php';
 
-// CORS
+// // CORS
 
-// preset option for allowed origins for our API server
-$allowed_origins = ['http://localhost',];
-$request_origin = isset( $_SERVER['HTTP_ORIGIN'] )
-  ? $_SERVER['HTTP_ORIGIN']
-  : null;
-// if there is no HTTP_ORIGIN, then bail
-if ( ! $request_origin ) {
-  return;
-}
+// // preset option for allowed origins for our API server
+// $allowed_origins = ['http://localhost','*', $_SERVER['HTTP_ORIGIN']];
+// $request_origin = isset( $_SERVER['HTTP_ORIGIN'] )
+//   ? $_SERVER['HTTP_ORIGIN']
+//   : null;
+// // if there is no HTTP_ORIGIN, then bail
+// if ( ! $request_origin ) {
+//   return;
+// }
 
-// a fallback value for allowed_origin we will send to the response header
-$allowed_origin = 'http://localhost';
+// // a fallback value for allowed_origin we will send to the response header
+// $allowed_origin = 'http://localhost';
 
-// now determine if request is coming from allowed ones
-if ( in_array( $request_origin, $allowed_origins ) ) {
-  $allowed_origin = $request_origin;
-}
+// // now determine if request is coming from allowed ones
+// if ( in_array( $request_origin, $allowed_origins ) ) {
+//   $allowed_origin = $request_origin;
+// }
 
-// print needed allowed origins
-header( "Access-Control-Allow-Origin: {$allowed_origin}" );
-header( 'Access-Control-Allow-Credentials: true' );
-header( 'Access-Control-Allow-Methods: GET, POST, OPTIONS' );
+// // print needed allowed origins
+// header( "Access-Control-Allow-Origin: {$allowed_origin}" );
+// header( 'Access-Control-Allow-Credentials: true' );
+// header( 'Access-Control-Allow-Methods: GET, POST, OPTIONS' );
 
-// chrome and some other browser sends a preflight check with OPTIONS
-// if that is found, then we need to send response that it's okay
-// @link https://stackoverflow.com/a/17125550/2754557
-if (
-  isset( $_SERVER['REQUEST_METHOD'] )
-  && $_SERVER['REQUEST_METHOD'] === 'OPTIONS'
-) {
-  // need preflight here
-  header( 'Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept' );
-  // add cache control for preflight cache
-  // @link https://httptoolkit.tech/blog/cache-your-cors/
-  header( 'Access-Control-Max-Age: 86400' );
-  header( 'Cache-Control: public, max-age=86400' );
-  header( 'Vary: origin' );
-  // just exit and CORS request will be okay
-  // NOTE: We are exiting only when the OPTIONS preflight request is made
-  // because the pre-flight only checks for response header and HTTP status code.
-  exit( 0 );
-}
+// // chrome and some other browser sends a preflight check with OPTIONS
+// // if that is found, then we need to send response that it's okay
+// // @link https://stackoverflow.com/a/17125550/2754557
+// if (
+//   isset( $_SERVER['REQUEST_METHOD'] )
+//   && $_SERVER['REQUEST_METHOD'] === 'OPTIONS'
+// ) {
+//   // need preflight here
+//   header( 'Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept' );
+//   // add cache control for preflight cache
+//   // @link https://httptoolkit.tech/blog/cache-your-cors/
+//   header( 'Access-Control-Max-Age: 86400' );
+//   header( 'Cache-Control: public, max-age=86400' );
+//   header( 'Vary: origin' );
+//   // just exit and CORS request will be okay
+//   // NOTE: We are exiting only when the OPTIONS preflight request is made
+//   // because the pre-flight only checks for response header and HTTP status code.
+//   exit( 0 );
+// }
 
-// END CORS
+// //END CORS
 
 
+
+Flight::before('start', function(){
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+});
 
 Flight::register('db', 'PDO', array('mysql:host=localhost;dbname=gustitruck','root',''));
 // Flight::register('db', 'PDO', array('mysql:host=192.95.39.223;dbname=cargaint_gustitruck','cargaint_root','HHbt37Y37@#987'));
@@ -70,6 +76,18 @@ Flight::route('GET /inventario/@user', function ($user) {
         Flight::json($data);
 
 });
+
+
+Flight::route('GET /users', function () {
+
+    $sentence =Flight::db()->prepare("SELECT u.usuario, u.nombre, u.primer_apellido, u.segundo_apellido, r.description as role FROM `usuarios` as u inner join `roles` as r on u.role = r.id_role");
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
+
+
 
 
 Flight::route('GET /inventario/@user/@producto', function ($user, $producto) {
@@ -274,9 +292,36 @@ Flight::route('GET /contenedores/@arq_state', function ($arq_state) {
 
 });
 
+
+Flight::route('PUT /contenedores', function () {
+
+    $arq_id = (Flight::request()->data->arq_id);
+    $auditor = (Flight::request()->data->auditor);
+    $comentarios = (Flight::request()->data->comentarios);
+
+    $sql= "UPDATE arqueos set arqueo_aprobado = 1, auditor= '{$auditor}', comentarios ='{$comentarios}', fecha_aprobacion = CURRENT_TIMESTAMP where arq_id ={$arq_id}";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+
+    Flight::jsonp('contenedor cerrado');
+});
+
 Flight::route('GET /detalleContenedor/@arq_id', function ($arq_id) {
 
     $sql= "SELECT distinct a.fecha_apertura, a.fecha_cierre, p.usuario, p.arq_id, d.pedido, sum(d.cantidad) as cantidad, sum(d.total) as total FROM `pedidos` as p INNER JOIN `detallepedidos` as d on p.pedido = d.pedido INNER JOIN `arqueos` as a on p.arq_id = a.arq_id WHERE p.`arq_id` = {$arq_id} group by a.fecha_apertura, a.fecha_cierre, p.usuario, p.arq_id, d.pedido;";
+    $sentence = Flight::db()->prepare($sql);
+
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
+
+
+Flight::route('GET /detalleCierreContenedor/@arq_id', function ($arq_id) {
+
+    $sql= "SELECT a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago, sum(d.total) as total FROM `arqueos` as a inner join pedidos as p on p.arq_id = a.arq_id inner join detallepedidos as d on p.pedido = d.pedido WHERE a.`arq_id` = {$arq_id} group by  a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago";
     $sentence = Flight::db()->prepare($sql);
 
     $sentence->execute();
@@ -326,26 +371,6 @@ Flight::route('POST /inventarioreduce', function () {
 
 });
 
-
-
-// Flight::route('PUT /inventarioajust', function () {
-
-//     $cantidad = (Flight::request()->data->cantidad);
-//     $usuario = (Flight::request()->data->usuario);
-//     $cod_producto = (Flight::request()->data->cod_producto);
-
-//     $sql= "UPDATE `inventario` set `cantidad` = ? where usuario = ? and producto = ?";
-    
-//     $sentence =Flight::db()->prepare($sql);
-
-//     $sentence->bindParam(1,$cantidad);
-//     $sentence->bindParam(2,$usuario);
-//     $sentence->bindParam(3,$cod_producto);
-
-//     $sentence->execute();
-//     Flight::jsonp($cantidad);
-
-// });
 
 Flight::route('GET /email/@pedido', function ($pedido) {
 

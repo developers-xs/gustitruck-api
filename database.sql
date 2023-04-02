@@ -29,7 +29,15 @@ CREATE TABLE usuarios
     nombre NVARCHAR(30),
     primer_apellido NVARCHAR(30),
     segundo_apellido NVARCHAR(30),
-    contrasena NVARCHAR(200)
+    contrasena NVARCHAR(200),
+    role int
+);
+
+Create Table roles
+(
+    id_role int not null PRIMARY KEY,
+    description nvarchar(200),
+    ability nvarchar(800)
 );
 
 insert into usuarios (usuario, nombre, primer_apellido, segundo_apellido, contrasena) values('abenavides', 'Antonio', 'Benavides', 'Hernandez', 'ogaitnas');
@@ -65,9 +73,12 @@ create table arqueos(
     usuario varchar(30) not null,
     fecha_apertura DATETIME not null DEFAULT CURRENT_TIMESTAMP,
     fecha_cierre DATETIME,
-    arqueo_aprobado BOOLEAN DEFAULT FALSE
-);
+    arqueo_aprobado BOOLEAN DEFAULT FALSE,
+    auditor varchar(30) not null,
+    fecha_aprobacion DATETIME null,
+    comentarios VARCHAR(200) null,
 
+);
 
 -- Llenar tabla de cliente
 
