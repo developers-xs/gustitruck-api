@@ -10,54 +10,7 @@ require 'mailTemplate.php';
 
 require 'flight/Flight.php';
 
-// // CORS
-
-// // preset option for allowed origins for our API server
-// $allowed_origins = ['http://localhost','*', $_SERVER['HTTP_ORIGIN']];
-// $request_origin = isset( $_SERVER['HTTP_ORIGIN'] )
-//   ? $_SERVER['HTTP_ORIGIN']
-//   : null;
-// // if there is no HTTP_ORIGIN, then bail
-// if ( ! $request_origin ) {
-//   return;
-// }
-
-// // a fallback value for allowed_origin we will send to the response header
-// $allowed_origin = 'http://localhost';
-
-// // now determine if request is coming from allowed ones
-// if ( in_array( $request_origin, $allowed_origins ) ) {
-//   $allowed_origin = $request_origin;
-// }
-
-// // print needed allowed origins
-// header( "Access-Control-Allow-Origin: {$allowed_origin}" );
-// header( 'Access-Control-Allow-Credentials: true' );
-// header( 'Access-Control-Allow-Methods: GET, POST, OPTIONS' );
-
-// // chrome and some other browser sends a preflight check with OPTIONS
-// // if that is found, then we need to send response that it's okay
-// // @link https://stackoverflow.com/a/17125550/2754557
-// if (
-//   isset( $_SERVER['REQUEST_METHOD'] )
-//   && $_SERVER['REQUEST_METHOD'] === 'OPTIONS'
-// ) {
-//   // need preflight here
-//   header( 'Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept' );
-//   // add cache control for preflight cache
-//   // @link https://httptoolkit.tech/blog/cache-your-cors/
-//   header( 'Access-Control-Max-Age: 86400' );
-//   header( 'Cache-Control: public, max-age=86400' );
-//   header( 'Vary: origin' );
-//   // just exit and CORS request will be okay
-//   // NOTE: We are exiting only when the OPTIONS preflight request is made
-//   // because the pre-flight only checks for response header and HTTP status code.
-//   exit( 0 );
-// }
-
-// //END CORS
-
-
+Flight::register('db', 'PDO', array('mysql:host=localhost;dbname=gustitruck','root',''));
 
 Flight::before('start', function(){
     header('Access-Control-Allow-Origin: *');
@@ -65,8 +18,8 @@ Flight::before('start', function(){
     header('Access-Control-Allow-Headers: Content-Type');
 });
 
-Flight::register('db', 'PDO', array('mysql:host=localhost;dbname=gustitruck','root',''));
-// Flight::register('db', 'PDO', array('mysql:host=192.95.39.223;dbname=cargaint_gustitruck','cargaint_root','HHbt37Y37@#987'));
+// TODO: servir a todos los origenes
+// TODO: encriptar passwords
 
 Flight::route('GET /inventario/@user', function ($user) {
 
@@ -179,6 +132,19 @@ Flight::route('POST /pedidodetalle', function () {
     
     $sentence->execute();
 
+});
+
+
+Flight::route('PUT /pedidos', function () {
+
+    $pedido = (Flight::request()->data->pedido);
+
+    $sql= "UPDATE pedidos SET facturado = 1 where pedido = '{$pedido}'";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+
+    Flight::jsonp('contenedor cerrado');
 });
 
 
@@ -355,6 +321,24 @@ Flight::route('GET /contenedorAbierto/@usuario', function ($usuario) {
 
 
 
+Flight::route('POST /inventoryload', function () {
+
+    // $items = (Flight::request()->data->Rows);
+    $Rows = (Flight::request()->data->Rows);
+
+    $valorr = "";
+
+    foreach ($Rows as $item) {
+       $row = json_decode($item);
+       $valorr = $row->usuario;
+      }
+
+    Flight::json($valorr);
+
+});
+
+
+
 Flight::route('POST /inventarioreduce', function () {
 
     $cantidad = (Flight::request()->data->cantidad);
@@ -374,10 +358,6 @@ Flight::route('POST /inventarioreduce', function () {
 
 Flight::route('GET /email/@pedido', function ($pedido) {
 
-        // $pedido = (Flight::request()->data->pedido);
-        // $cliente = (Flight::request()->data->cliente);
-        // $lineas = (Flight::request()->data->lineas);
-        //Create an instance; passing `true` enables exceptions
         $mail = new PHPMailer(true);
 
         try {
@@ -393,14 +373,7 @@ Flight::route('GET /email/@pedido', function ($pedido) {
             //Recipients
             $mail->setFrom('ingenieria@cargainternacional.cr', 'GustiTruck');
             $mail->addAddress('gerardo.benavidesh@hotmail.com', 'Facturacion');     //Add a recipient
-            // $mail->addAddress('ellen@example.com');               //Name is optional
-            // $mail->addReplyTo('info@example.com', 'Information');
-            // $mail->addCC('cc@example.com');
-            // $mail->addBCC('bcc@example.com');
-
-            //Attachments
-            // $mail->addAttachment('/var/tmp/file.tar.gz');         //Add attachments
-            // $mail->addAttachment('/tmp/image.jpg', 'new.jpg');    //Optional name
+ //Optional name
 
             //Content
             $mail->isHTML(true);                               //Set email format to HTML
