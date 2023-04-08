@@ -326,7 +326,7 @@ Flight::route('GET /detalleContenedor/@arq_id', function ($arq_id) {
 
 Flight::route('GET /detalleCierreContenedor/@arq_id', function ($arq_id) {
 
-    $sql= "SELECT a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago, sum(d.total) as total FROM `arqueos` as a inner join pedidos as p on p.arq_id = a.arq_id inner join detallepedidos as d on p.pedido = d.pedido WHERE a.`arq_id` = {$arq_id} group by  a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago";
+    $sql= "SELECT a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago, count(p.pedido) as pedidos, sum(d.total) as total FROM `arqueos` as a inner join pedidos as p on p.arq_id = a.arq_id inner join detallepedidos as d on p.pedido = d.pedido WHERE a.`arq_id` = {$arq_id} group by  a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago";
     $sentence = Flight::db()->prepare($sql);
 
     $sentence->execute();
