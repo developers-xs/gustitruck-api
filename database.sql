@@ -37,7 +37,7 @@ Create Table roles
 (
     id_role int not null PRIMARY KEY,
     description nvarchar(200),
-    ability nvarchar(800)
+    ability JSON not null
 );
 
 insert into usuarios (usuario, nombre, primer_apellido, segundo_apellido, contrasena) values('abenavides', 'Antonio', 'Benavides', 'Hernandez', 'ogaitnas');
@@ -74,10 +74,24 @@ create table arqueos(
     fecha_apertura DATETIME not null DEFAULT CURRENT_TIMESTAMP,
     fecha_cierre DATETIME,
     arqueo_aprobado BOOLEAN DEFAULT FALSE,
-    auditor varchar(30) not null,
+    auditor varchar(30) null,
     fecha_aprobacion DATETIME null,
     comentarios VARCHAR(200) null,
 
+);
+
+CREATE TABLE solicitudClientes (
+    cliente VARCHAR(30) NOT NULL PRIMARY KEY,
+    descripcion VARCHAR(50) NOT NULL,
+    id VARCHAR(50) NOT NULL,
+    provincia VARCHAR(50) NOT NULL,
+    canton VARCHAR(50) NOT NULL,
+    distrito VARCHAR(50) NOT NULL,
+    direccion VARCHAR(200) NOT NULL,
+    creado boolean DEFAULT FALSE,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    creador_cod varchar(30) null,
+    fecha_creacion DATETIME null
 );
 
 -- Llenar tabla de cliente

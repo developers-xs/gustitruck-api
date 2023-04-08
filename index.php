@@ -18,7 +18,14 @@ Flight::before('start', function(){
     header('Access-Control-Allow-Headers: Content-Type');
 });
 
-// TODO: servir a todos los origenes
+
+
+Flight::route('OPTIONS *', function() {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
+  });
+
 // TODO: encriptar passwords
 
 Flight::route('GET /inventario/@user', function ($user) {
@@ -182,7 +189,7 @@ Flight::route('POST /login', function () {
     $usuario = (Flight::request()->data->usuario);
     $contrasena = (Flight::request()->data->contrasena);
 
-    $sql= "SELECT * FROM usuarios where usuario = '{$usuario}' and BINARY contrasena = '{$contrasena}'";
+    $sql= "SELECT u.usuario, u.nombre, u.primer_apellido, u.segundo_apellido, u.role, r.ability FROM usuarios as u inner JOIN roles as r on u.role = r.id_role where usuario = '{$usuario}' and BINARY contrasena = '{$contrasena}'";
     $sentence = Flight::db()->prepare($sql);
     
     $sentence->execute();
@@ -217,6 +224,38 @@ Flight::route('GET /contenedorAprobado/@usuario', function ($usuario) {
 });
 
 
+
+Flight::route('POST /solicitudCliente', function () {
+
+    $cliente = (Flight::request()->data->cliente);
+    $descripcion = (Flight::request()->data->descripcion);
+    $id = (Flight::request()->data->id);
+    $provincia = (Flight::request()->data->provincia);
+    $canton = (Flight::request()->data->canton);
+    $distrito = (Flight::request()->data->distrito);
+    $direccion = (Flight::request()->data->direccion);
+
+    $sql= "INSERT INTO solicitudClientes(cliente, descripcion, id, provincia, canton, distrito, direccion) values('{$cliente}', '{$descripcion}','{$id}','{$provincia}','{$canton}','{$distrito}','{$direccion}')";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+    Flight::jsonp('Solicitu creada');
+
+});
+
+Flight::route('POST /agregarCliente', function () {
+
+    $cliente = (Flight::request()->data->cliente);
+    $descripcion = (Flight::request()->data->descripcion);
+
+
+    $sql= "INSERT INTO clientes (cliente, descripcion) VALUES ('{$cliente}', '{$descripcion}')";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+    Flight::jsonp('Cliente agregado correctamente');
+
+});
 
 Flight::route('POST /cerrarContenedor', function () {
 
