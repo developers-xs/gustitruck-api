@@ -37,6 +37,15 @@ Flight::route('GET /inventario/@user', function ($user) {
 
 });
 
+Flight::route('GET /inventario/', function () {
+
+    $sentence =Flight::db()->prepare("SELECT * FROM `inventario` WHERE cantidad > 0");
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
+
 
 Flight::route('GET /users', function () {
 
@@ -193,10 +202,37 @@ Flight::route('POST /login', function () {
     $sentence = Flight::db()->prepare($sql);
     
     $sentence->execute();
-    $data=$sentence->fetchAll();
-    Flight::json($data);
 
+    if (!$sentence->rowCount() > 0) {
+        $error = array('message' => 'You are not authorized to access this resource');
+        Flight::halt(403, json_encode($error));
+    }
+
+    $data=$sentence->fetchAll();
+    Flight::halt(200, json_encode($data));
 });
+
+
+
+Flight::route('POST /changePassword', function () {
+
+    $usuario = (Flight::request()->data->usuario);
+    $contrasena = (Flight::request()->data->contrasena);
+
+    $sql= "UPDATE usuarios set contrasena = '{$contrasena}' where usuario = '{$usuario}'";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+
+    if (!$sentence->rowCount() > 0) {
+        $error = array('message' => 'An error ocurred when thy to change password');
+        Flight::halt(403, json_encode($error));
+    }
+
+    $data = array('message' => 'Updated successful');
+    Flight::halt(200, json_encode($data));
+});
+
 
 
 Flight::route('POST /abrirContenedor', function () {
@@ -326,7 +362,7 @@ Flight::route('GET /detalleContenedor/@arq_id', function ($arq_id) {
 
 Flight::route('GET /detalleCierreContenedor/@arq_id', function ($arq_id) {
 
-    $sql= "SELECT a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago, count(p.pedido) as pedidos, sum(d.total) as total FROM `arqueos` as a inner join pedidos as p on p.arq_id = a.arq_id inner join detallepedidos as d on p.pedido = d.pedido WHERE a.`arq_id` = {$arq_id} group by  a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago";
+    $sql= "SELECT a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago, count(distinct p.pedido) as pedidos, sum(d.total) as total FROM `arqueos` as a inner join pedidos as p on p.arq_id = a.arq_id inner join detallepedidos as d on p.pedido = d.pedido WHERE a.`arq_id` = {$arq_id} group by  a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago";
     $sentence = Flight::db()->prepare($sql);
 
     $sentence->execute();
@@ -334,6 +370,9 @@ Flight::route('GET /detalleCierreContenedor/@arq_id', function ($arq_id) {
     Flight::json($data);
 
 });
+
+
+
 
 Flight::route('GET /contenedorInfo/@arq_id', function ($arq_id) {
 
@@ -362,17 +401,91 @@ Flight::route('GET /contenedorAbierto/@usuario', function ($usuario) {
 
 Flight::route('POST /inventoryload', function () {
 
-    // $items = (Flight::request()->data->Rows);
-    $Rows = (Flight::request()->data->Rows);
+      //Retrieve the JSON data from the POST request
+      $json_data = Flight::request()->getBody();
 
-    $valorr = "";
+      // Decode the JSON data into an associative array
+      $data = json_decode($json_data, true);
+      $sql ="";
+    // Loop through the array of associative arrays
+    foreach ($data as $row) {
 
-    foreach ($Rows as $item) {
-       $row = json_decode($item);
-       $valorr = $row->usuario;
+        $usuario = $row['Usuario'];
+        $producto = $row['Producto'];
+        $descripcion = $row['Descripcion'];
+        $ean13 = $row['EAN13'];
+        $precio = $row['Precio'];
+        $cantidad = $row['Cantidad'];
+
+        $sql = "SELECT * FROM inventario where usuario = '{$usuario}' and producto = '{$producto}'";
+
+        $sentence = Flight::db()->prepare($sql);
+
+        $sentence->execute();
+
+
+        if (!$sentence->rowCount() > 0) {
+
+            $sql = "INSERT INTO inventario (`usuario`, `producto`, `descripcion`, `ean13`, `precio`, `cantidad`) values ('{$usaurio}', '{$producto}','{$descripcion}', '{$ean13}', '{$precio}', '{$cantidad}')";
+        }else{
+            $sql = "UPDATE inventario set ean13 = '{$ean13}', precio='{$precio}', cantidad = cantidad+{$cantidad}, creado = CURRENT_TIMESTAMP where usuario = '{$usuario}' and producto = '{$producto}'";
+        }
+
+        $sentence = Flight::db()->prepare($sql);
+        $sentence->execute();
+
+    }
+    Flight::jsonp('Ingreso exitoso');
+});
+
+
+Flight::route('POST /cargaClientes', function () {
+
+    //Retrieve the JSON data from the POST request
+    $json_data = Flight::request()->getBody();
+
+    // Decode the JSON data into an associative array
+    $data = json_decode($json_data, true);
+    $sql = 'DELETE FROM clientes; INSERT INTO clientes (`cliente`, `descripcion`) VALUES';
+    $count = true;
+
+  // Loop through the array of associative arrays
+  foreach ($data as $row) {
+
+      $Cliente = $row['Cliente'];
+      $Nombre = $row['Nombre'];
+
+      if ($count) {
+        $sql=$sql."('{$Cliente}','{$Nombre}')";
+        $count=false;
+      }else{
+        $sql=$sql.",('{$Cliente}','{$Nombre}')";
       }
+  }
 
-    Flight::json($valorr);
+    $sentence = Flight::db()->prepare($sql);
+    $sentence->execute();
+
+    if (!$sentence->rowCount() > 0) {
+        $error = array('message' => 'You are not authorized to access this resource');
+        Flight::halt(400, json_encode($error));
+    }
+
+    $data=$sentence->fetchAll();
+    $data = array('rowsAffected' => $sentence->rowCount());
+    Flight::halt(200, json_encode($data));
+
+});
+
+
+Flight::route('GET /clientes', function () {
+
+    $sql= "SELECT * FROM clientes";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
 
 });
 
