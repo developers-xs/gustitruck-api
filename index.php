@@ -10,7 +10,7 @@ require 'mailTemplate.php';
 
 require 'flight/Flight.php';
 
-Flight::register('db', 'PDO', array('mysql:host=localhost;dbname=gustitruck','root',''));
+Flight::register('db', 'PDO', array('mysql:host=localhost;dbname=gustitruck','root','HHbt37Y37'));
 
 Flight::before('start', function(){
     header('Access-Control-Allow-Origin: *');
@@ -270,8 +270,10 @@ Flight::route('POST /solicitudCliente', function () {
     $canton = (Flight::request()->data->canton);
     $distrito = (Flight::request()->data->distrito);
     $direccion = (Flight::request()->data->direccion);
+    $solicitante = (Flight::request()->data->solicitante);
+    $email = (Flight::request()->data->email);
 
-    $sql= "INSERT INTO solicitudClientes(cliente, descripcion, id, provincia, canton, distrito, direccion) values('{$cliente}', '{$descripcion}','{$id}','{$provincia}','{$canton}','{$distrito}','{$direccion}')";
+    $sql= "INSERT INTO solicitudClientes(cliente, descripcion, id, provincia, canton, distrito, direccion, email, usuario) values('{$cliente}', '{$descripcion}','{$id}','{$provincia}','{$canton}','{$distrito}','{$direccion}','{$email}','{$solicitante}')";
     $sentence = Flight::db()->prepare($sql);
     
     $sentence->execute();
@@ -308,6 +310,67 @@ Flight::route('POST /cerrarContenedor', function () {
     Flight::jsonp($sql);
 
 
+});
+
+
+
+
+Flight::route('POST /crearCliente', function () {
+
+    
+    $clientId = (Flight::request()->data->clientId);
+    $usuario = (Flight::request()->data->usuario);
+    $id = (Flight::request()->data->id);
+
+    $sql= "UPDATE `solicitudClientes` set `fecha_creacion` = CURRENT_TIMESTAMP, `creador`='{$usuario}', creado = 1 where `cliente` = '{$id}';UPDATE `clientes` set `cliente` = '{$clientId}', `create_time` = CURRENT_TIMESTAMP where `cliente` = '{$id}'; UPDATE `pedidos` set cliente = '{$clientId}' where cliente = '{$id}'";
+    
+    $sentence =Flight::db()->prepare($sql);
+
+    $sentence->execute();
+
+    if (!$sentence->rowCount() > 0) {
+        $error = array('message' => 'error al crear');
+        Flight::halt(400, $sql);
+    }
+
+    $data = array('rowsAffected' => $sentence->rowCount());
+    Flight::halt(200, json_encode($data));
+
+    Flight::jsonp($sql);
+
+});
+
+
+
+Flight::route('POST /crearUsuario', function () {
+
+    $name = (Flight::request()->data->name);
+    $username = (Flight::request()->data->username);
+    $flastName = (Flight::request()->data->flastName);
+    $slastName = (Flight::request()->data->slastName);
+    $password = (Flight::request()->data->password);
+    $role = (Flight::request()->data->role);
+
+
+    $sql= "INSERT INTO `usuarios` (usuario, nombre, primer_apellido, segundo_apellido, contrasena, role) values ('{$username}','{$name}','{$flastName}','{$slastName}','{$password}','{$role}')";
+    
+    try {
+
+        $sentence =Flight::db()->prepare($sql);
+
+        $sentence->execute();
+
+        if (!$sentence->rowCount() > 0) {
+            $error = array('message' => 'error al crear');
+            Flight::halt(400, $error);
+        }
+
+        $data = array('rowsAffected' => $sentence->rowCount());
+        Flight::halt(200, json_encode($data));
+
+    } catch (PDOException $e) {
+        Flight::halt(400, json_encode($e));
+    }
 });
 
 
@@ -426,7 +489,7 @@ Flight::route('POST /inventoryload', function () {
 
         if (!$sentence->rowCount() > 0) {
 
-            $sql = "INSERT INTO inventario (`usuario`, `producto`, `descripcion`, `ean13`, `precio`, `cantidad`) values ('{$usaurio}', '{$producto}','{$descripcion}', '{$ean13}', '{$precio}', '{$cantidad}')";
+            $sql = "INSERT INTO inventario (`usuario`, `producto`, `descripcion`, `ean13`, `precio`, `cantidad`) values ('{$usuario}', '{$producto}','{$descripcion}', '{$ean13}', '{$precio}', '{$cantidad}')";
         }else{
             $sql = "UPDATE inventario set ean13 = '{$ean13}', precio='{$precio}', cantidad = cantidad+{$cantidad}, creado = CURRENT_TIMESTAMP where usuario = '{$usuario}' and producto = '{$producto}'";
         }
@@ -481,6 +544,18 @@ Flight::route('POST /cargaClientes', function () {
 Flight::route('GET /clientes', function () {
 
     $sql= "SELECT * FROM clientes";
+    $sentence = Flight::db()->prepare($sql);
+    
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
+
+
+Flight::route('GET /newClients', function () {
+
+    $sql= "SELECT * FROM solicitudClientes where creado=0";
     $sentence = Flight::db()->prepare($sql);
     
     $sentence->execute();
