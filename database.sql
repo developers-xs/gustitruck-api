@@ -1,4 +1,4 @@
-drop database gustitruck;
+-- drop database gustitruck;
 create database gustitruck;
 
 use gustitruck;
@@ -83,6 +83,9 @@ create table arqueos(
 CREATE TABLE solicitudClientes (
     cliente VARCHAR(30) NOT NULL PRIMARY KEY,
     descripcion VARCHAR(50) NOT NULL,
+    email VARCHAR(100) not null,
+    usuario varchar(30) not null, 
+    creador varchar(30) not null, 
     id VARCHAR(50) NOT NULL,
     provincia VARCHAR(50) NOT NULL,
     canton VARCHAR(50) NOT NULL,
@@ -90,7 +93,6 @@ CREATE TABLE solicitudClientes (
     direccion VARCHAR(200) NOT NULL,
     creado boolean DEFAULT FALSE,
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    creador_cod varchar(30) null,
     fecha_creacion DATETIME null
 );
 
