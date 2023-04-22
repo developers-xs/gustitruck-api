@@ -10,7 +10,7 @@ require 'mailTemplate.php';
 
 require 'flight/Flight.php';
 
-Flight::register('db', 'PDO', array('mysql:host=localhost;dbname=gustitruck','root','HHbt37Y37'));
+Flight::register('db', 'PDO', array('mysql:host=217.76.52.61;dbname=gustitruck','root','HHbt37Y37@'));
 
 Flight::before('start', function(){
     header('Access-Control-Allow-Origin: *');
@@ -333,8 +333,9 @@ Flight::route('POST /crearCliente', function () {
         Flight::halt(400, $sql);
     }
 
-    $data = array('rowsAffected' => $sentence->rowCount());
-    Flight::halt(200, json_encode($data));
+    // $data = array('rowsAffected' => $sentence->rowCount());
+    // Flight::halt(200, json_encode($data));
+    Flight::halt(200, jsonp($sql));
 
     Flight::jsonp($sql);
 

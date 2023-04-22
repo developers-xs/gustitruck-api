@@ -35,7 +35,7 @@ CREATE TABLE usuarios
 
 Create Table roles
 (
-    id_role int not null PRIMARY KEY,
+    id_role int not null primary key AUTO_INCREMENT,
     description nvarchar(200),
     ability JSON not null
 );
@@ -47,7 +47,7 @@ CREATE TABLE pedidos(
     pedido int not null primary key AUTO_INCREMENT,
     arq_id int not null,
     tipo NVARCHAR(20) not NULL, 
-    fecha_entrega DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_entrega DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_creacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     forma_pago NVARCHAR(30) not null,
     cliente VARCHAR(30) NOT NULL,
@@ -76,8 +76,7 @@ create table arqueos(
     arqueo_aprobado BOOLEAN DEFAULT FALSE,
     auditor varchar(30) null,
     fecha_aprobacion DATETIME null,
-    comentarios VARCHAR(200) null,
-
+    comentarios VARCHAR(200) null
 );
 
 CREATE TABLE solicitudClientes (
@@ -85,7 +84,7 @@ CREATE TABLE solicitudClientes (
     descripcion VARCHAR(50) NOT NULL,
     email VARCHAR(100) not null,
     usuario varchar(30) not null, 
-    creador varchar(30) not null, 
+    creador varchar(30), 
     id VARCHAR(50) NOT NULL,
     provincia VARCHAR(50) NOT NULL,
     canton VARCHAR(50) NOT NULL,
