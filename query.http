@@ -1,0 +1,7 @@
+POST http://209.126.83.168:4001/API/login
+content-type: application/json
+
+{
+    "usuario": "nromero",
+    "contrasena": "Romero34"
+}

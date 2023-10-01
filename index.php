@@ -10,7 +10,8 @@ require 'mailTemplate.php';
 
 require 'flight/Flight.php';
 
-Flight::register('db', 'PDO', array('mysql:host=217.76.52.61;dbname=gustitruck','root','HHbt37Y37@'));
+// Flight::register('db', 'PDO', array('mysql:host=localhost;dbname=gustitruck','root',''));
+Flight::register('db', 'PDO', array('mysql:host=localhost;dbname=gustitruck','root',''));
 
 Flight::before('start', function(){
     header('Access-Control-Allow-Origin: *');
@@ -47,12 +48,94 @@ Flight::route('GET /inventario/', function () {
 });
 
 
+Flight::route('GET /reporteventas/', function () {
+
+    //Vendedor, Descripcion ,  fecha, cliente
+
+    $sentence =Flight::db()->prepare("SELECT 
+        p.arq_id, 
+        p.fecha_creacion, 
+        p.usuario, 
+        p.cliente, 
+        p.cliente_nombre, 
+        d.pedido,
+        CASE 
+            WHEN p.facturado = 1 THEN 'facturado'
+            ELSE 'sin facturar'
+        END AS estado_facturacion,
+        d.cod_producto, 
+        d.producto, 
+        REPLACE(d.cantidad, '.', ',') AS cantidad, 
+        REPLACE(d.precio, '.', ',') AS precio, 
+        REPLACE(d.total, '.', ',') AS total,
+    FROM 
+        `detallepedidos` AS d
+    INNER JOIN 
+        `pedidos` AS p 
+    ON 
+        d.pedido = p.pedido;
+    ");
+    $sentence->execute();
+    $data=$sentence->fetchAll();
+    Flight::json($data);
+
+});
+
+
 Flight::route('GET /users', function () {
 
     $sentence =Flight::db()->prepare("SELECT u.usuario, u.nombre, u.primer_apellido, u.segundo_apellido, r.description as role FROM `usuarios` as u inner join `roles` as r on u.role = r.id_role");
     $sentence->execute();
     $data=$sentence->fetchAll();
     Flight::json($data);
+
+});
+
+
+Flight::route('DELETE /deleteuser/@id', function ($id) {
+
+    $sentence =Flight::db()->prepare("UPDATE usuarios set estado = 0 where usuario='{$id}'");
+    $sentence->execute();
+
+    if (!$sentence->rowCount() > 0) {
+        $error = array('message' => "Error al eliminar al usuario '{$id}
+        '");
+        Flight::halt(400, json_encode($error));
+    }
+
+    Flight::halt(200, json_encode(array('message' => 'Usuario eliminado correctamente')));
+
+
+});
+
+Flight::route('DELETE /deleteInvUser/@username', function ($username) {
+
+    $sentence =Flight::db()->prepare("DELETE from `inventario` where `usuario`='{$username}'");
+    $sentence->execute();
+
+    if (!$sentence->rowCount() > 0) {
+        $error = array('message' => "Error al eliminar al inventario de '{$username}'");
+        Flight::halt(400, json_encode($error));
+    }
+
+    Flight::halt(200, json_encode(array('message' => 'Inventario eliminado correctamente')));
+
+
+});
+
+
+
+Flight::route('DELETE /deleteAllInv', function () {
+
+    $sentence =Flight::db()->prepare("DELETE FROM `inventario`");
+    $sentence->execute();
+
+    if (!$sentence->rowCount() > 0) {
+        $error = array('message' => "Error al eliminar el inventario");
+        Flight::halt(400, json_encode($error));
+    }
+
+    Flight::halt(200, json_encode(array('message' => 'Inventario eliminado correctamente')));
 
 });
 
@@ -452,7 +535,7 @@ Flight::route('GET /contenedorInfo/@arq_id', function ($arq_id) {
 
 Flight::route('GET /contenedorAbierto/@usuario', function ($usuario) {
 
-    $sql= "SELECT * FROM arqueos where `fecha_cierre` is null and `usuario`='{$usuario}'";
+    $sql= "SELECT * FROM arqueos where `fecha_cierre` is null and `usuario`='{$usuario}' order by `arq_id` desc LIMIT 1";
     $sentence = Flight::db()->prepare($sql);
     
     $sentence->execute();
@@ -474,10 +557,10 @@ Flight::route('POST /inventoryload', function () {
     // Loop through the array of associative arrays
     foreach ($data as $row) {
 
-        $usuario = $row['Usuario'];
-        $producto = $row['Producto'];
+        $usuario = trim($row['Usuario']);
+        $producto = trim($row['Producto']);
         $descripcion = $row['Descripcion'];
-        $ean13 = $row['EAN13'];
+        $ean13 = trim($row['EAN13']);
         $precio = $row['Precio'];
         $cantidad = $row['Cantidad'];
 
