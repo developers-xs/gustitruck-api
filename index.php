@@ -216,9 +216,10 @@ Flight::route('POST /pedidodetalle', function () {
     $producto = (Flight::request()->data->producto);
     $cantidad = (Flight::request()->data->cantidad);
     $precio = (Flight::request()->data->precio);
+    $descuento = (Flight::request()->data->descuento);
     $total = (Flight::request()->data->total);
 
-    $sql= 'INSERT INTO `detallepedidos` (`pedido`, `cod_producto`, `producto`, `cantidad`, `precio`, `total`) VALUES (?,?,?,?,?,?)';
+    $sql= 'INSERT INTO `detallepedidos` (`pedido`, `cod_producto`, `producto`, `cantidad`, `precio`, `descuento`, `total`) VALUES (?,?,?,?,?,?,?)';
     $sentence =Flight::db()->prepare($sql);
     
     $sentence->bindParam(1,$pedido);
@@ -226,7 +227,8 @@ Flight::route('POST /pedidodetalle', function () {
     $sentence->bindParam(3,$producto);
     $sentence->bindParam(4,$cantidad);
     $sentence->bindParam(5,$precio);
-    $sentence->bindParam(6,$total);
+    $sentence->bindParam(6,$descuento);
+    $sentence->bindParam(7,$total);
 
     
     $sentence->execute();
@@ -238,7 +240,7 @@ Flight::route('PUT /pedidos', function () {
 
     $pedido = (Flight::request()->data->pedido);
 
-    $sql= "UPDATE pedidos SET facturado = 1 where pedido = '{$pedido}'";
+    $sql= "UPDATE pedidos SET facturado = 1, fecha_facturado=CURRENT_TIMESTAMP where pedido = '{$pedido}'";
     $sentence = Flight::db()->prepare($sql);
     
     $sentence->execute();
@@ -497,7 +499,7 @@ Flight::route('PUT /contenedores', function () {
 
 Flight::route('GET /detalleContenedor/@arq_id', function ($arq_id) {
 
-    $sql= "SELECT distinct a.fecha_apertura, a.fecha_cierre, p.usuario, p.arq_id, d.pedido, sum(d.cantidad) as cantidad, sum(d.total) as total FROM `pedidos` as p INNER JOIN `detallepedidos` as d on p.pedido = d.pedido INNER JOIN `arqueos` as a on p.arq_id = a.arq_id WHERE p.`arq_id` = {$arq_id} group by a.fecha_apertura, a.fecha_cierre, p.usuario, p.arq_id, d.pedido;";
+    $sql= "SELECT distinct a.fecha_apertura, a.fecha_cierre, p.usuario, p.arq_id, d.pedido, sum(d.cantidad) as cantidad, sum(d.total) as total, sum(d.total*d.descuento) as descuento FROM `pedidos` as p INNER JOIN `detallepedidos` as d on p.pedido = d.pedido INNER JOIN `arqueos` as a on p.arq_id = a.arq_id WHERE p.`arq_id` = {$arq_id} group by a.fecha_apertura, a.fecha_cierre, p.usuario, p.arq_id, d.pedido;";
     $sentence = Flight::db()->prepare($sql);
 
     $sentence->execute();
@@ -509,7 +511,7 @@ Flight::route('GET /detalleContenedor/@arq_id', function ($arq_id) {
 
 Flight::route('GET /detalleCierreContenedor/@arq_id', function ($arq_id) {
 
-    $sql= "SELECT a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago, count(distinct p.pedido) as pedidos, sum(d.total) as total FROM `arqueos` as a inner join pedidos as p on p.arq_id = a.arq_id inner join detallepedidos as d on p.pedido = d.pedido WHERE a.`arq_id` = {$arq_id} group by  a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago";
+    $sql= "SELECT a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago, count(distinct p.pedido) as pedidos, sum(d.total) as total, sum(d.total*d.descuento) as descuento FROM `arqueos` as a inner join pedidos as p on p.arq_id = a.arq_id inner join detallepedidos as d on p.pedido = d.pedido WHERE a.`arq_id` = {$arq_id} group by  a.`usuario`, a.`fecha_apertura`, a.`fecha_cierre`, p.forma_pago";
     $sentence = Flight::db()->prepare($sql);
 
     $sentence->execute();
@@ -682,8 +684,8 @@ Flight::route('GET /email/@pedido', function ($pedido) {
             $mail->Port       = 465;                                    //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
 
             //Recipients
-            $mail->setFrom('ingenieria@cargainternacional.cr', 'GustiTruck');
-            $mail->addAddress('gerardo.benavidesh@hotmail.com', 'Facturacion');     //Add a recipient
+            $mail->setFrom('ingeniseria@cargainternacional.cr', 'GustiTruck');
+            $mail->addAddress('gerasssssrdo.benavidesh@hotmail.com', 'Facturacion');     //Add a recipient
  //Optional name
 
             //Content

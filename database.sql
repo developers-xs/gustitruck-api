@@ -58,7 +58,11 @@ CREATE TABLE pedidos(
     anotaciones NVARCHAR(200),
     lineas int,
     facturado BOOLEAN DEFAULT FALSE
+    fecha_facturado DATETIME NULL DEFAULT NULL AFTER;
+
 );
+
+
 
 
 CREATE TABLE detallepedidos(
@@ -67,8 +71,13 @@ CREATE TABLE detallepedidos(
     producto VARCHAR(50) NOT NULL,
     cantidad INT NOT NULL,
     precio FLOAT not null,
+    descuento FLOAT not null DEFAULT '0',
     total FLOAT NOT NULL
 );
+
+-- ALTER TABLE `detallepedidos` ADD `descuento` FLOAT NOT NULL DEFAULT '0' AFTER `precio`;
+
+
 
 create table arqueos(
     arq_id int not null primary key AUTO_INCREMENT,
